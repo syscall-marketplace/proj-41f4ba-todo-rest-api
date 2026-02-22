@@ -13,7 +13,18 @@ function toTodoResponse(todo: Todo): TodoResponse {
 
 export async function createTodoHandler(req: Request, res: Response): Promise<void> {
   const { title, completed } = req.body;
-  const todo = todoStore.createTodo(title, completed);
+
+  if (typeof title !== 'string' || title.trim().length === 0) {
+    res.status(400).json({ error: 'Validation error', message: 'Title is required and must be a non-empty string' });
+    return;
+  }
+
+  if (completed !== undefined && typeof completed !== 'boolean') {
+    res.status(400).json({ error: 'Validation error', message: 'Completed must be a boolean' });
+    return;
+  }
+
+  const todo = todoStore.createTodo(title.trim(), completed);
   res.status(201).json(toTodoResponse(todo));
 }
 
@@ -33,7 +44,22 @@ export async function getTodoByIdHandler(req: Request, res: Response): Promise<v
 
 export async function updateTodoHandler(req: Request, res: Response): Promise<void> {
   const { title, completed } = req.body;
-  const todo = todoStore.updateTodo(req.params.id, { title, completed });
+
+  if (title !== undefined && (typeof title !== 'string' || title.trim().length === 0)) {
+    res.status(400).json({ error: 'Validation error', message: 'Title must be a non-empty string' });
+    return;
+  }
+
+  if (completed !== undefined && typeof completed !== 'boolean') {
+    res.status(400).json({ error: 'Validation error', message: 'Completed must be a boolean' });
+    return;
+  }
+
+  const updates: { title?: string; completed?: boolean } = {};
+  if (title !== undefined) updates.title = title.trim();
+  if (completed !== undefined) updates.completed = completed;
+
+  const todo = todoStore.updateTodo(req.params.id, updates);
   if (!todo) {
     res.status(404).json({ error: 'Not found', message: `Todo with id '${req.params.id}' not found` });
     return;
